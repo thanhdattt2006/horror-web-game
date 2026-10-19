@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<!--
+  TRẠM 9 — SỔ TAY TRỰC CA
+  Phiên bản Three.js cố định (Pinned): three@0.186.1
+  CDN chính: https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js
+  Hỗ trợ chạy trực tiếp qua giao thức file:// (double-click) và HTTP Static Server.
+-->
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>TRẠM 9 — Sổ Tay Trực Ca</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%230b1116'/><text x='32' y='46' font-family='monospace' font-weight='bold' font-size='40' text-anchor='middle' fill='%23ff8c3b'>9</text></svg>" />
+  <style>
+    :root {
+      --bg-deep: #0b1116;
+      --bg-panel: rgba(14, 23, 30, 0.92);
+      --border-cold: #2e4756;
+      --accent-sodium: #ff8c3b;
+      --accent-cyan: #7ce0ff;
+      --text-main: #d8e4ec;
+      --text-muted: #8aa0ae;
+      --danger: #e05246;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: var(--bg-deep);
+      color: var(--text-main);
+      font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    #canvas-container {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      background: #080d11;
+    }
+
+    #ui-root {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Màn hình lỗi CDN */
+    #cdn-error-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #0b1217;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      pointer-events: auto;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(6, 11, 15, 0.84);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-cold);
+      box-shadow: 0 20px 55px rgba(0, 0, 0, 0.85), inset 0 0 24px rgba(124, 224, 255, 0.04);
+      padding: 28px 32px;
+      max-width: 680px;
+      width: 100%;
+      border-radius: 4px;
+      color: var(--text-main);
+    }
+
+    .badge-tag, .station-emblem, .station-code {
+      display: inline-block;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 12px;
+      letter-spacing: 1.6px;
+      color: var(--accent-sodium);
+      border: 1px solid rgba(255, 140, 59, 0.45);
+      background: rgba(255, 140, 59, 0.08);
+      padding: 4px 10px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      font-size: 38px;
+      letter-spacing: 4px;
+      margin-bottom: 6px;
+      color: #f0f6fa;
+    }
+
+    h2 {
+      font-size: 22px;
+      letter-spacing: 1.5px;
+      margin-bottom: 14px;
+      color: #eef5f9;
+    }
+
+    p {
+      line-height: 1.6;
+      color: var(--text-main);
+      margin-bottom: 12px;
+      font-size: 15px;
+    }
+
+    .warning-list {
+      margin: 14px 0 18px 20px;
+      line-height: 1.65;
+      color: #c2d4e0;
+      font-size: 14px;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(255, 140, 59, 0.1);
+      border: 1px solid rgba(255, 140, 59, 0.35);
+      margin-bottom: 18px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .loading-bar-wrap {
+      width: 100%;
+      height: 8px;
+      background: #142029;
+      border: 1px solid #2b4353;
+      margin: 18px 0 12px;
+      overflow: hidden;
+    }
+
+    .loading-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff8c3b, #ffd08a);
+      transition: width 0.25s ease;
+    }
+
+    .status-line {
+      font-family: "Courier New", monospace;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Title Screen */
+    .title-layout {
+      max-width: 560px;
+      width: 100%;
+      background: rgba(10, 17, 23, 0.88);
+      border: 1px solid var(--border-cold);
+      border-left: 4px solid var(--accent-sodium);
+      padding: 36px 36px 28px;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.9);
+    }
+
+    .main-logo {
+      font-size: 54px;
+      letter-spacing: 8px;
+      font-weight: 800;
+      color: #f4f8fb;
+      text-shadow: 0 0 24px rgba(255, 140, 59, 0.32);
+    }
+
+    .sub-logo {
+      font-family: "Courier New", monospace;
+      font-size: 16px;
+      letter-spacing: 5px;
+      color: var(--accent-sodium);
+      margin-bottom: 28px;
+    }
+
+    .title-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+      margin-bottom: 24px;
+    }
+
+    .title-footer {
+      border-top: 1px solid rgba(138, 160, 174, 0.2);
+      padding-top: 14px;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .endings-counter {
+      color: var(--accent-cyan);
+      font-family: "Courier New", monospace;
+      font-weight: bold;
+    }
+
+    /* Buttons */
+    button {
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      padding: 11px 18px;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-transform: uppercase;
+    }
+
+    .btn-primary {
+      background: var(--accent-sodium);
+      color: #0b1116;
+      border: 1px solid #ffaa66;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #ffa35c;
+      box-shadow: 0 0 16px rgba(255, 140, 59, 0.5);
+    }
+
+    .btn-secondary {
+      background: rgba(24, 38, 49, 0.9);
+      color: var(--text-main);
+      border: 1px solid var(--border-cold);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      border-color: var(--accent-sodium);
+      color: #ffffff;
+      background: rgba(36, 56, 71, 0.95);
+    }
+
+    .btn-danger {
+      background: rgba(120, 32, 28, 0.85);
+      color: #ffd8d4;
+      border: 1px solid #c94a40;
+    }
+
+    .btn-small {
+      padding: 6px 12px;
+      font-size: 12px;
+      background: #1b2a36;
+      color: var(--text-main);
+      border: 1px solid var(--border-cold);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    .modal-actions.vertical {
+      flex-direction: column;
+    }
+
+    /* HUD */
+    .hud-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .hud-top-left {
+      position: absolute;
+      top: 18px;
+      left: 20px;
+      max-width: 430px;
+      background: rgba(9, 15, 20, 0.72);
+      border-left: 3px solid var(--accent-sodium);
+      padding: 10px 14px;
+      font-size: 13px;
+    }
+
+    .hud-hour-badge {
+      font-family: "Courier New", monospace;
+      font-weight: bold;
+      color: var(--accent-sodium);
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+
+    .hud-objective {
+      color: #dce7ef;
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+
+    .hud-checklist {
+      font-family: "Courier New", monospace;
+      font-size: 12px;
+      color: #9cb4c3;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .chk-item.done {
+      color: #7ce0a3;
+      text-decoration: line-through;
+    }
+
+    .hud-top-right {
+      position: absolute;
+      top: 18px;
+      right: 20px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .hud-pill {
+      background: rgba(9, 15, 20, 0.78);
+      border: 1px solid var(--border-cold);
+      padding: 6px 11px;
+      font-family: "Courier New", monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .hud-pill.active-pill {
+      border-color: var(--accent-sodium);
+      color: var(--accent-sodium);
+    }
+
+    .hud-crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 6px;
+      height: 6px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background: rgba(230, 240, 248, 0.65);
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.9);
+      transition: transform 0.12s ease, background 0.12s ease;
+    }
+
+    .hud-crosshair.interact-ready {
+      transform: translate(-50%, -50%) scale(1.9);
+      background: var(--accent-sodium);
+    }
+
+    .hud-interact {
+      position: absolute;
+      top: calc(50% + 18px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(8, 14, 19, 0.88);
+      border: 1px solid var(--accent-sodium);
+      color: #fff2e5;
+      padding: 5px 12px;
+      font-family: "Courier New", monospace;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .hud-notification {
+      position: absolute;
+      top: 110px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(16, 28, 37, 0.94);
+      border: 1px solid var(--accent-cyan);
+      color: var(--accent-cyan);
+      padding: 8px 18px;
+      font-family: "Courier New", monospace;
+      font-size: 14px;
+    }
+
+    .hud-subtitle-box {
+      position: absolute;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: 780px;
+      width: 88%;
+      text-align: center;
+      background: rgba(6, 10, 14, 0.86);
+      border: 1px solid rgba(138, 160, 174, 0.35);
+      padding: 10px 18px;
+      color: #f2f7fa;
+      line-height: 1.5;
+    }
+
+    .hud-subtitle-box.sub-small { font-size: 13px; }
+    .hud-subtitle-box.sub-medium { font-size: 16px; }
+    .hud-subtitle-box.sub-large { font-size: 20px; }
+
+    /* Sổ Tay Trực Ca */
+    .notebook-card {
+      max-width: 860px;
+      max-height: 86vh;
+      display: flex;
+      flex-direction: column;
+      background: #171f24;
+      border: 2px solid #495d69;
+    }
+
+    .notebook-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid #334652;
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .notebook-meta {
+      font-family: "Courier New", monospace;
+      font-size: 12px;
+      color: var(--accent-sodium);
+      margin-bottom: 0;
+    }
+
+    .notebook-tabs {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .tab-btn {
+      background: #10181e;
+      color: var(--text-muted);
+      border: 1px solid #2e414d;
+      padding: 7px 12px;
+      font-size: 12px;
+    }
+
+    .tab-btn.active {
+      background: var(--accent-sodium);
+      color: #0b1116;
+      border-color: var(--accent-sodium);
+    }
+
+    .notebook-body {
+      overflow-y: auto;
+      padding-right: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 64vh;
+    }
+
+    .rule-entry, .note-entry {
+      padding: 11px 14px;
+      border-radius: 2px;
+      background: rgba(11, 17, 22, 0.78);
+      border-left: 3px solid #5c7382;
+    }
+
+    .rule-entry.style-handwritten_blue {
+      border-left-color: #64b5f6;
+      background: rgba(17, 31, 45, 0.82);
+      font-style: italic;
+    }
+
+    .rule-entry.style-handwritten_red {
+      border-left-color: #ff756b;
+      background: rgba(42, 20, 22, 0.78);
+    }
+
+    .rule-entry.style-wet_ink, .rule-entry.style-wet_ink_dynamic {
+      border-left-color: #7ce0ff;
+      background: rgba(12, 28, 34, 0.9);
+      font-family: "Courier New", monospace;
+    }
+
+    .rule-title, .note-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: #f0f6fa;
+      margin-bottom: 4px;
+    }
+
+    .rule-text, .note-text {
+      font-size: 13.5px;
+      line-height: 1.55;
+      color: #c8d8e4;
+    }
+
+    .note-entry.missing {
+      opacity: 0.55;
+      border-left-color: #354652;
+    }
+
+    /* Interaction Modal */
+    .inter-desc {
+      background: rgba(8, 13, 18, 0.75);
+      border: 1px solid #263946;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .inter-options {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .inter-opt-btn {
+      text-align: left;
+      width: 100%;
+    }
+
+    /* Settings */
+    .settings-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 62vh;
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 10px;
+      background: rgba(9, 15, 20, 0.65);
+      border: 1px solid rgba(46, 71, 86, 0.5);
+      font-size: 14px;
+    }
+
+    .setting-row select, .setting-row input[type="range"] {
+      width: 210px;
+      background: #101920;
+      color: var(--text-main);
+      border: 1px solid var(--border-cold);
+      padding: 4px 6px;
+    }
+
+    /* Ending */
+    .ending-card {
+      max-width: 740px;
+      border-top: 4px solid var(--accent-sodium);
+    }
+
+    .ending-summary {
+      background: rgba(9, 15, 20, 0.8);
+      padding: 14px;
+      border-left: 3px solid var(--accent-cyan);
+      margin: 14px 0;
+    }
+
+    .ending-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 14px;
+      font-size: 13px;
+    }
+
+    .stat-box {
+      background: rgba(16, 26, 34, 0.85);
+      padding: 8px 10px;
+      border: 1px solid #293e4c;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .ending-unlocked-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .unlocked-header {
+      width: 100%;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .end-pill {
+      font-size: 11px;
+      padding: 4px 8px;
+      border: 1px solid #2c404d;
+      font-family: "Courier New", monospace;
+    }
+
+    .end-pill.unlocked {
+      border-color: var(--accent-sodium);
+      color: var(--accent-sodium);
+      background: rgba(255, 140, 59, 0.1);
+    }
+
+    /* Transition */
+    .transition-box {
+      text-align: center;
+      font-family: "Courier New", monospace;
+    }
+
+    .trans-code {
+      color: var(--accent-sodium);
+      font-size: 16px;
+      letter-spacing: 4px;
+      margin-bottom: 8px;
+    }
+
+    /* Debug Overlay */
+    .debug-overlay {
+      position: fixed;
+      top: 58px;
+      right: 20px;
+      z-index: 9000;
+      background: rgba(5, 10, 14, 0.92);
+      border: 1px solid #48a868;
+      padding: 10px 12px;
+      font-family: "Courier New", monospace;
+      font-size: 11.5px;
+      color: #8bf0a8;
+      pointer-events: auto;
+      max-width: 480px;
+    }
+
+    .debug-title {
+      font-weight: bold;
+      color: #ffd166;
+      margin-bottom: 4px;
+    }
+
+    .debug-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 6px;
+    }
+
+    .debug-buttons button {
+      padding: 3px 6px;
+      font-size: 10px;
+      background: #162834;
+      color: #d8f3dc;
+      border: 1px solid #3c6e47;
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  <div id="ui-root"></div>
+
+  <!-- Màn hình lỗi thân thiện khi CDN hoặc WebGL không nạp được -->
+  <div id="cdn-error-screen" class="hidden">
+    <div class="modal-card">
+      <div class="badge-tag">CẢNH BÁO KẾT NỐI THƯ VIỆN ĐỒ HỌA</div>
+      <h2>KHÔNG THỂ NẠP THƯ VIỆN THREE.JS (v0.186.1)</h2>
+      <p>Trình duyệt không thể tải thư viện đồ họa 3D từ CDN hoặc bản dự phòng cục bộ đã bị di chuyển.</p>
+      <p id="cdn-error-detail" class="status-line">Vui lòng kiểm tra kết nối mạng hoặc giữ nguyên thư mục vendor/ đi kèm.</p>
+      <div class="modal-actions">
+        <button onclick="window.location.reload()" class="btn-primary">THỬ TẢI LẠI TRANG</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nạp bản dự phòng cục bộ Three.js v0.186.1 (hoạt động cả khi mất mạng và mở bằng file://) -->
+  <script src="./vendor/three.min.js"></script>
+
+  <!-- Kiểm tra CDN / Fallback và khởi chạy bundle của TRẠM 9 -->
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('simulateCdnFail') === '1' || typeof window.THREE === 'undefined') {
+        var errScreen = document.getElementById('cdn-error-screen');
+        if (errScreen) errScreen.classList.remove('hidden');
+        window.__TRAM9_CDN_FAILED__ = true;
+      }
+    })();
+  </script>
+  <script src="./dist/bundle.js"></script>
+</body>
+</html>
